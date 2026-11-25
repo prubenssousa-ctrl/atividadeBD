@@ -22,7 +22,19 @@ BEFORE INSERT ON movimentacoes
 FOR EACH ROW
 BEGIN
 
-  -- escreva aqui
+  SET NEW.tipo = LOWER(TRIM(NEW.tipo));
+
+  IF NEW.tipo NOT IN ('credito', 'debito') THEN
+    SIGNAL SQLSTATE '45000' SET MESSAGE_TEXT = 'Tipo inválido';
+  END IF;
+
+  IF NEW.valor IS NULL OR NEW.valor <= 0 THEN
+    SIGNAL SQLSTATE '45000' SET MESSAGE_TEXT = 'Valor inválido';
+  END IF;
+
+  IF NEW.descricao IS NULL OR TRIM(NEW.descricao) = '' THEN
+    SET NEW.descricao = 'Sem descrição';
+  END IF;
 
 END $$
 DELIMITER ;
@@ -42,9 +54,17 @@ DELIMITER ;
 --
 -- Pergunta: este trigger também vale quando a procedure sacar (Q1)
 -- grava uma movimentação? Por quê?
--- Resposta: ______________________________________________________
+-- Resposta: Sim. O trigger dispara em qualquer INSERT na tabela
+-- movimentacoes, venha de onde vier (INSERT manual, procedure, aplicação).
+-- Quando a sacar faz o INSERT do 'debito', o BEFORE INSERT roda do mesmo jeito
+-- (testado: CALL sacar(1, 10) gravou debito 10.00 'Saque' passando pelo trigger).
 
 -- ------------------------- RESULTADO OBTIDO --------------------------
 -- Cole aqui (como comentário) o que o MySQL mostrou nos testes,
 -- ou salve um print em evidencias/Q4.png
 --
+-- INSERT tipo ' CREDITO '  -> gravou: id 7 | conta 1 | credito | 50.00 | Bônus
+-- INSERT descricao ''      -> gravou: id 8 | conta 1 | debito  | 20.00 | Sem descrição
+-- INSERT tipo 'pix'        -> ERROR 1644 (45000): Tipo inválido
+-- INSERT valor 0           -> ERROR 1644 (45000): Valor inválido
+-- SELECT * FROM movimentacoes WHERE id_mov > 6;  -> só as ids 7 e 8

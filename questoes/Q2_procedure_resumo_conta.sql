@@ -29,7 +29,12 @@ CREATE PROCEDURE resumo_conta(IN  p_conta    INT,
                               OUT p_qtd      INT)
 BEGIN
 
-  -- escreva aqui
+  SELECT IFNULL(SUM(CASE WHEN tipo = 'credito' THEN valor END), 0),
+         IFNULL(SUM(CASE WHEN tipo = 'debito'  THEN valor END), 0),
+         COUNT(*)
+    INTO p_creditos, p_debitos, p_qtd
+    FROM movimentacoes
+   WHERE id_conta = p_conta;
 
 END $$
 DELIMITER ;
@@ -42,9 +47,14 @@ DELIMITER ;
 -- CALL resumo_conta(4, @c, @d, @q);  SELECT @c, @d, @q;   -- 0.00 | 0.00 | 0
 --
 -- Pergunta: para o Bruno, quanto dá @c - @d? Bate com o saldo dele?
--- Resposta: ______________________________________________________
+-- Resposta: @c - @d = 600.00 - 100.00 = 500.00, que é exatamente o saldo do
+-- Bruno. Bate porque o saldo é o acumulado de todos os créditos menos todos
+-- os débitos da conta (saldo = créditos - débitos).
 
 -- ------------------------- RESULTADO OBTIDO --------------------------
 -- Cole aqui (como comentário) o que o MySQL mostrou nos testes,
 -- ou salve um print em evidencias/Q2.png
 --
+-- CALL resumo_conta(2, @c, @d, @q);  -> 600.00 | 100.00 | 2
+-- CALL resumo_conta(1, @c, @d, @q);  -> 1000.00 | 0.00 | 1
+-- CALL resumo_conta(4, @c, @d, @q);  -> 0.00 | 0.00 | 0
